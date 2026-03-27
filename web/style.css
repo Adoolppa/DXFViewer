@@ -1,0 +1,273 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+/* ── App layout ── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ── Toolbar ── */
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 40px;
+  background: #2a2a2a;
+  border-bottom: 1px solid #3a3a3a;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+#app-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #4fc3f7;
+  margin-right: 6px;
+}
+
+#toolbar-sep {
+  flex: 1;
+}
+
+#zoom-label {
+  min-width: 46px;
+  text-align: right;
+  color: #aaa;
+  font-size: 12px;
+}
+
+#status-text {
+  color: #888;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+/* ── Toolbar buttons ── */
+button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #333;
+  color: #e0e0e0;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+button:hover { background: #444; }
+button:active { background: #555; }
+button svg { flex-shrink: 0; }
+
+#btn-zoom-in, #btn-zoom-out {
+  padding: 4px 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* ── Main area ── */
+#main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Layer panel ── */
+#layer-panel {
+  width: 200px;
+  flex-shrink: 0;
+  background: #222;
+  border-right: 1px solid #3a3a3a;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#layer-panel.hidden { display: none; }
+
+#layer-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-weight: 600;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+}
+#layer-panel-header span { flex: 1; }
+#layer-panel-header button {
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+#layer-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #2a2a2a;
+  transition: background 0.1s;
+}
+.layer-item:hover { background: #2e2e2e; }
+
+.layer-item input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #4fc3f7;
+}
+
+.layer-color-chip {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.25);
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.layer-color-chip:hover {
+  border-color: rgba(255,255,255,0.6);
+  transform: scale(1.15);
+}
+.layer-color-chip input[type="color"] {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  padding: 0;
+  border: none;
+  pointer-events: none;
+}
+.layer-color-chip:focus-within {
+  outline: 2px solid #4fc3f7;
+}
+
+.layer-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+/* ── Canvas wrap ── */
+#canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #111;
+}
+
+#canvas {
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
+  cursor: crosshair;
+}
+
+/* ── Drop overlay ── */
+#drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+  z-index: 10;
+}
+#drop-overlay.active { display: flex; }
+#drop-overlay.dragover { background: #1a2a3a; }
+
+#drop-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: #666;
+  text-align: center;
+}
+#drop-msg p { font-size: 14px; }
+
+#file-label {
+  display: inline-block;
+  padding: 8px 20px;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #ccc;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+#file-label:hover { background: #444; }
+
+#file-input { display: none; }
+
+/* ── Loading overlay ── */
+#loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+#loading-overlay.hidden { display: none; }
+
+#loading-box {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 10px;
+  padding: 32px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+#loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #444;
+  border-top-color: #4fc3f7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#loading-text {
+  color: #aaa;
+  font-size: 13px;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1a1a1a; }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
