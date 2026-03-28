@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "build:wasm": "bash scripts/build-wasm.sh"
+    "build:wasm": "node scripts/build-wasm.js"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.15",

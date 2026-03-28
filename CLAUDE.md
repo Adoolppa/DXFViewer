@@ -25,6 +25,7 @@ npm run dev
 ```
 
 node_modules는 `C:\DXFnm`에 설치 후 junction 연결 (D: 드라이브 병렬 mkdir ENOENT 버그 우회).
+세팅/실행 방법: [SETUP.md](SETUP.md)
 
 ## 기술 스택
 

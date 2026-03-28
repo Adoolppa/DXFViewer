@@ -2,17 +2,21 @@
 set -euo pipefail
 
 EMSDK_PATH="${EMSDK:-/d/emsdk}"
+EMSCRIPTEN="${EMSDK_PATH}/upstream/emscripten"
 
-# shellcheck disable=SC1091
-source "$EMSDK_PATH/emsdk_env.sh"
+export EM_CONFIG="${EMSDK_PATH}/.emscripten"
+
+# Git Bash에서는 emcc가 .py로만 존재하므로 python으로 래핑
+EMCMAKE="python ${EMSCRIPTEN}/emcmake.py"
+CMAKE_CMD="cmake"
 
 mkdir -p build/wasm public/wasm
 
-emcmake cmake -B build/wasm \
+${EMCMAKE} ${CMAKE_CMD} -B build/wasm \
   -DCMAKE_BUILD_TYPE=Release \
   .
 
-cmake --build build/wasm
+${CMAKE_CMD} --build build/wasm
 
 echo ""
 echo "WASM build complete:"
