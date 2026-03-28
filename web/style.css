@@ -14,6 +14,7 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  position: relative;
 }
 
 /* ── Toolbar ── */
@@ -264,6 +265,86 @@ button svg { flex-shrink: 0; }
 #loading-text {
   color: #aaa;
   font-size: 13px;
+}
+
+/* ── Point options panel ── */
+#point-opts-panel {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 10px 12px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+#point-opts-panel.hidden { display: none; }
+
+.opt-sep {
+  border-top: 1px solid #3a3a3a;
+  margin: 2px 0;
+}
+
+.opt-check-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  user-select: none;
+}
+.opt-check-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: #4fc3f7;
+  cursor: pointer;
+}
+
+.opt-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.opt-label {
+  font-size: 11px;
+  color: #aaa;
+  min-width: 46px;
+}
+.opt-row input[type="color"] {
+  width: 28px;
+  height: 22px;
+  border: 1px solid #555;
+  border-radius: 3px;
+  padding: 1px;
+  background: #333;
+  cursor: pointer;
+}
+.opt-row input[type="number"] {
+  width: 46px;
+  padding: 2px 4px;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 3px;
+  color: #e0e0e0;
+  font-size: 12px;
+  text-align: center;
+}
+.opt-unit {
+  font-size: 11px;
+  color: #777;
+}
+
+/* Active state for toggle buttons */
+button.active {
+  background: #1a3a4a;
+  border-color: #4fc3f7;
+  color: #4fc3f7;
 }
 
 /* ── Scrollbar ── */

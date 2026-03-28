@@ -36,7 +36,43 @@
         </svg>
         레이어
       </button>
+      <button id="btn-toggle-points" title="점 표시/숨기기">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>
+          <circle cx="4" cy="12" r="2" fill="currentColor" stroke="none"/>
+          <circle cx="20" cy="12" r="2" fill="currentColor" stroke="none"/>
+        </svg>
+        점 표시
+      </button>
+      <button id="btn-point-opts" title="점 옵션">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+        </svg>
+        점 옵션
+      </button>
       <span id="status-text"></span>
+    </div>
+
+    <!-- Point options panel -->
+    <div id="point-opts-panel" class="hidden">
+      <div class="opt-row">
+        <label class="opt-check-label">
+          <input type="checkbox" id="opt-show-points"> 점 표시
+        </label>
+      </div>
+      <div class="opt-sep"></div>
+      <div class="opt-row">
+        <span class="opt-label">직선 점</span>
+        <input type="color" id="opt-line-color" value="#000000" title="직선 점 색상">
+        <input type="number" id="opt-line-size" value="2" min="1" max="20" title="반지름(px)">
+        <span class="opt-unit">px</span>
+      </div>
+      <div class="opt-row">
+        <span class="opt-label">곡선 점</span>
+        <input type="color" id="opt-curve-color" value="#ff0000" title="곡선 점 색상">
+        <input type="number" id="opt-curve-size" value="1" min="1" max="20" title="반지름(px)">
+        <span class="opt-unit">px</span>
+      </div>
     </div>
 
     <!-- Main area -->

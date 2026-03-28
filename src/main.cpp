@@ -1,9 +1,11 @@
 #include <emscripten/bind.h>
 #include "dxf_parser.h"
+#include "renderer.h"
 #include <sstream>
 #include <cmath>
 
 static DXFDocument g_doc;
+static Renderer    g_renderer;
 
 // ---------------------------------------------------------------------------
 // JSON helpers (minimal, no external deps)
@@ -231,12 +233,57 @@ std::string getBlocksJSON() {
 }
 
 // ---------------------------------------------------------------------------
+// Renderer bindings
+// ---------------------------------------------------------------------------
+bool initRenderer(const std::string& canvasSelector) {
+    return g_renderer.init(canvasSelector);
+}
+
+void loadDocument() {
+    g_renderer.loadDocument(g_doc);
+}
+
+void setLayerVisibility(const std::string& name, bool visible) {
+    g_renderer.setLayerVisibility(name, visible);
+}
+
+void setLayerColor(const std::string& name, float r, float g, float b) {
+    g_renderer.setLayerColor(name, r, g, b);
+}
+
+void setViewTransform(float scale, float tx, float ty,
+                      float width, float height, float docCy) {
+    g_renderer.setViewTransform(scale, tx, ty, width, height, docCy);
+}
+
+void renderFrame() {
+    g_renderer.renderFrame();
+}
+
+void setPointOpts(bool show,
+                  float lineR, float lineG, float lineB, float lineSize,
+                  float curveR, float curveG, float curveB, float curveSize) {
+    g_renderer.setPointOpts(show,
+                             lineR, lineG, lineB, lineSize,
+                             curveR, curveG, curveB, curveSize);
+}
+
+// ---------------------------------------------------------------------------
 // Emscripten bindings
 // ---------------------------------------------------------------------------
 EMSCRIPTEN_BINDINGS(dxf_module) {
+    // DXF parsing (existing)
     emscripten::function("parseDXF",       &parseDXF);
     emscripten::function("getBoundsJSON",  &getBoundsJSON);
     emscripten::function("getLayersJSON",  &getLayersJSON);
     emscripten::function("getEntitiesJSON",&getEntitiesJSON);
     emscripten::function("getBlocksJSON",  &getBlocksJSON);
+    // WebGL2 renderer (new)
+    emscripten::function("initRenderer",       &initRenderer);
+    emscripten::function("loadDocument",       &loadDocument);
+    emscripten::function("setLayerVisibility", &setLayerVisibility);
+    emscripten::function("setLayerColor",      &setLayerColor);
+    emscripten::function("setViewTransform",   &setViewTransform);
+    emscripten::function("renderFrame",        &renderFrame);
+    emscripten::function("setPointOpts",       &setPointOpts);
 }
