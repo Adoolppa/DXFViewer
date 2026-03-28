@@ -84,6 +84,14 @@ const state = {
   dragTy: 0,
   // render request
   rafPending: false,
+  // point rendering options
+  pointOpts: {
+    show:       false,
+    lineColor:  '#000000',  // 직선 점 색상
+    lineSize:   2,          // 직선 점 반지름(px)
+    curveColor: '#ff0000',  // 곡선 점 색상
+    curveSize:  1,          // 곡선 점 반지름(px)
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -169,6 +177,16 @@ function resolveColor(ent, layerName) {
 }
 
 // ---------------------------------------------------------------------------
+// Draw a filled dot at screen coordinates (fixed pixel size, zoom-independent)
+// ---------------------------------------------------------------------------
+function drawDot(sx, sy, radius, color) {
+  ctx.beginPath();
+  ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+// ---------------------------------------------------------------------------
 // Bulge → arc helper
 // ---------------------------------------------------------------------------
 function drawBulgeSegment(x1, y1, x2, y2, bulge) {
@@ -211,6 +229,11 @@ function drawEntity(ent, layerOverride) {
       ctx.moveTo(wx(ent.x1), wy(ent.y1));
       ctx.lineTo(wx(ent.x2), wy(ent.y2));
       ctx.stroke();
+      if (state.pointOpts.show) {
+        const { lineColor, lineSize } = state.pointOpts;
+        drawDot(wx(ent.x1), wy(ent.y1), lineSize, lineColor);
+        drawDot(wx(ent.x2), wy(ent.y2), lineSize, lineColor);
+      }
       break;
     }
     case 'CIRCLE': {
@@ -226,6 +249,13 @@ function drawEntity(ent, layerOverride) {
       ctx.beginPath();
       ctx.arc(wx(ent.cx), wy(ent.cy), ws(ent.r), sa, ea, true /* CCW in screen = CW in DXF */);
       ctx.stroke();
+      if (state.pointOpts.show) {
+        const { curveColor, curveSize } = state.pointOpts;
+        const saRad = ent.sa * Math.PI / 180;
+        const eaRad = ent.ea * Math.PI / 180;
+        drawDot(wx(ent.cx + ent.r * Math.cos(saRad)), wy(ent.cy + ent.r * Math.sin(saRad)), curveSize, curveColor);
+        drawDot(wx(ent.cx + ent.r * Math.cos(eaRad)), wy(ent.cy + ent.r * Math.sin(eaRad)), curveSize, curveColor);
+      }
       break;
     }
     case 'LWPOLYLINE': {
@@ -243,6 +273,22 @@ function drawEntity(ent, layerOverride) {
         ctx.closePath();
       }
       ctx.stroke();
+      if (state.pointOpts.show) {
+        const { lineColor, lineSize, curveColor, curveSize } = state.pointOpts;
+        const n = pts.length;
+        for (let i = 0; i < n; i++) {
+          // outgoing bulge from this vertex
+          const outBulge = pts[i][2];
+          // incoming bulge into this vertex (from previous segment)
+          const inBulge  = i === 0 ? (ent.closed ? pts[n-1][2] : 0) : pts[i-1][2];
+          const isCurve  = Math.abs(outBulge) > 1e-10 || Math.abs(inBulge) > 1e-10;
+          if (isCurve) {
+            drawDot(wx(pts[i][0]), wy(pts[i][1]), curveSize, curveColor);
+          } else {
+            drawDot(wx(pts[i][0]), wy(pts[i][1]), lineSize, lineColor);
+          }
+        }
+      }
       break;
     }
     case 'ELLIPSE': {
@@ -259,6 +305,16 @@ function drawEntity(ent, layerOverride) {
         true
       );
       ctx.stroke();
+      if (state.pointOpts.show) {
+        const { curveColor, curveSize } = state.pointOpts;
+        const cosA = Math.cos(angle), sinA = Math.sin(angle);
+        // parametric point on ellipse: rotate (majorLen*cos(t), minorLen*sin(t)) by angle
+        for (const t of [ent.sp, ent.ep]) {
+          const ex = ent.cx + cosA * majorLen * Math.cos(t) - sinA * minorLen * Math.sin(t);
+          const ey = ent.cy + sinA * majorLen * Math.cos(t) + cosA * minorLen * Math.sin(t);
+          drawDot(wx(ex), wy(ey), curveSize, curveColor);
+        }
+      }
       break;
     }
     case 'TEXT':
@@ -286,6 +342,12 @@ function drawEntity(ent, layerOverride) {
       }
       if (ent.closed) ctx.closePath();
       ctx.stroke();
+      if (state.pointOpts.show) {
+        const { curveColor, curveSize } = state.pointOpts;
+        for (const p of pts) {
+          drawDot(wx(p[0]), wy(p[1]), curveSize, curveColor);
+        }
+      }
       break;
     }
     case 'INSERT': {
@@ -514,6 +576,53 @@ document.getElementById('btn-toggle-layers').addEventListener('click', () => {
 });
 document.getElementById('btn-layers-all').addEventListener('click', () => setAllLayers(true));
 document.getElementById('btn-layers-none').addEventListener('click', () => setAllLayers(false));
+
+// Points toggle button
+const btnTogglePoints = document.getElementById('btn-toggle-points');
+btnTogglePoints.addEventListener('click', () => {
+  state.pointOpts.show = !state.pointOpts.show;
+  btnTogglePoints.classList.toggle('active', state.pointOpts.show);
+  document.getElementById('opt-show-points').checked = state.pointOpts.show;
+  requestRender();
+});
+
+// Point options panel open/close
+document.getElementById('btn-point-opts').addEventListener('click', () => {
+  document.getElementById('point-opts-panel').classList.toggle('hidden');
+});
+
+// Close point opts panel when clicking outside
+document.addEventListener('click', e => {
+  const panel = document.getElementById('point-opts-panel');
+  if (!panel.classList.contains('hidden') &&
+      !panel.contains(e.target) &&
+      e.target !== document.getElementById('btn-point-opts')) {
+    panel.classList.add('hidden');
+  }
+});
+
+// Point options controls
+document.getElementById('opt-show-points').addEventListener('change', e => {
+  state.pointOpts.show = e.target.checked;
+  btnTogglePoints.classList.toggle('active', state.pointOpts.show);
+  requestRender();
+});
+document.getElementById('opt-line-color').addEventListener('input', e => {
+  state.pointOpts.lineColor = e.target.value;
+  requestRender();
+});
+document.getElementById('opt-line-size').addEventListener('input', e => {
+  state.pointOpts.lineSize = Math.max(1, parseInt(e.target.value, 10) || 1);
+  requestRender();
+});
+document.getElementById('opt-curve-color').addEventListener('input', e => {
+  state.pointOpts.curveColor = e.target.value;
+  requestRender();
+});
+document.getElementById('opt-curve-size').addEventListener('input', e => {
+  state.pointOpts.curveSize = Math.max(1, parseInt(e.target.value, 10) || 1);
+  requestRender();
+});
 
 // File input
 fileInput.addEventListener('change', e => {
