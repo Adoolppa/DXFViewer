@@ -9,8 +9,14 @@ export function useWasmModule() {
   useEffect(() => {
     let cancelled = false;
 
-    import(/* @vite-ignore */ '/wasm/renderer.js')
-      .then((m: { default: CreateRenderer }) => m.default())
+    new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = '/wasm/renderer.js';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('renderer.js 로드 실패'));
+        document.head.appendChild(script);
+      })
+      .then(() => (window as unknown as { createRenderer: CreateRenderer }).createRenderer())
       .then((mod: RendererModule) => {
         if (!cancelled) {
           setModule(mod);

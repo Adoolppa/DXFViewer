@@ -1,18 +1,15 @@
 import { useRef, useState } from 'react';
+import { FolderOpen } from 'lucide-react';
 import { useWasmModule } from './hooks/useWasmModule';
 import { useRendererBridge } from './hooks/useRendererBridge';
 import { RendererProvider, useRendererContext } from './context/RendererContext';
-import { Toolbar } from './components/Toolbar';
-import { LayerPanel } from './components/LayerPanel';
+import { Sidebar } from './components/Sidebar';
 import { CanvasView } from './components/CanvasView';
-import { PointOptsPanel } from './components/PointOptsPanel';
 import type { LayerState } from './types/dxf';
 
-// Inner component that has access to context
 function AppInner() {
-  const { bridge, setLayers, setBounds, setStatus, renderRef } = useRendererContext();
-  const [layerPanelOpen, setLayerPanelOpen] = useState(false);
-  const [pointOptsOpen, setPointOptsOpen]   = useState(false);
+  const { bridge, setLayers, setBounds, setStatus, setRawEntities, renderRef, status } =
+    useRendererContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File) => {
@@ -37,8 +34,8 @@ function AppInner() {
         setBounds(bounds);
         setLayers(layers);
         bridge.loadDocument();
-        // fitToScreen triggered via bounds change in CanvasView
-        setStatus(`엔티티 로드 완료`);
+        setRawEntities(bridge.getEntities());
+        setStatus('엔티티 로드 완료');
         renderRef.current?.();
       }, 0);
     };
@@ -47,25 +44,38 @@ function AppInner() {
 
   return (
     <div className="flex flex-col h-screen bg-[#1a1a1a] text-[#e0e0e0] font-['Segoe_UI',system-ui,sans-serif] overflow-hidden select-none">
-      {/* Toolbar */}
-      <Toolbar
-        onOpenFile={() => fileInputRef.current?.click()}
-        onFit={() => { /* fitRef called inside Toolbar */ }}
-        layerPanelOpen={layerPanelOpen}
-        onToggleLayerPanel={() => setLayerPanelOpen(!layerPanelOpen)}
-        pointOptsOpen={pointOptsOpen}
-        onTogglePointOpts={() => setPointOptsOpen(!pointOptsOpen)}
-      />
+      {/* Header */}
+      <header className="h-14 bg-[#1e1e1e] border-b border-[#2a2a2a] flex items-center px-5 flex-shrink-0">
+        <div>
+          <div className="text-sm font-semibold text-white tracking-wide">DXF Viewer</div>
+          <div className="text-[11px] text-[#555] mt-0.5">
+            DXF 도면 뷰어 · 레이어 관리 지원
+          </div>
+        </div>
+        <div className="flex-1" />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-2 px-3.5 py-1.5 text-xs bg-[#252525] border border-[#353535] rounded hover:bg-[#2e2e2e] hover:border-[#404040] transition-colors cursor-pointer text-[#ccc]"
+        >
+          <FolderOpen size={14} /> 파일 열기
+        </button>
+      </header>
 
-      {/* Point opts panel (dropdown under toolbar) */}
-      {pointOptsOpen && (
-        <PointOptsPanel onClose={() => setPointOptsOpen(false)} />
-      )}
-
-      {/* Main area */}
+      {/* Main */}
       <div className="flex flex-1 overflow-hidden">
-        {layerPanelOpen && <LayerPanel />}
-        <CanvasView />
+        {/* Canvas area */}
+        <div className="flex-1 relative overflow-hidden">
+          <CanvasView />
+          <DropZone onFile={handleFile} />
+        </div>
+
+        {/* Right sidebar */}
+        <Sidebar />
+      </div>
+
+      {/* Status bar */}
+      <div className="h-6 bg-[#1a1a1a] border-t border-[#242424] flex items-center px-3 flex-shrink-0">
+        <span className="text-[11px] text-[#4a4a4a]">{status}</span>
       </div>
 
       {/* Hidden file input */}
@@ -76,12 +86,12 @@ function AppInner() {
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) { handleFile(file); e.target.value = ''; }
+          if (file) {
+            handleFile(file);
+            e.target.value = '';
+          }
         }}
       />
-
-      {/* Drop zone */}
-      <DropZone onFile={handleFile} />
     </div>
   );
 }
@@ -94,10 +104,13 @@ function DropZone({ onFile }: { onFile: (f: File) => void }) {
 
   return (
     <div
-      className={`absolute inset-0 flex items-center justify-center z-10 transition-colors ${
-        dragOver ? 'bg-[#1a2a3a]' : 'bg-[#111]'
+      className={`absolute inset-0 flex flex-col items-center justify-center z-10 transition-colors ${
+        dragOver ? 'bg-[#111d27]' : 'bg-[#111]'
       }`}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
       onDragLeave={() => setDragOver(false)}
       onDrop={(e) => {
         e.preventDefault();
@@ -106,12 +119,29 @@ function DropZone({ onFile }: { onFile: (f: File) => void }) {
         if (file) onFile(file);
       }}
     >
-      <div className="flex flex-col items-center gap-4 text-[#666]">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="1.5">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      {/* Upload icon */}
+      <div
+        className={`mb-5 p-5 rounded-full border-2 border-dashed transition-colors ${
+          dragOver ? 'border-[#4fc3f7]/40 bg-[#4fc3f7]/5' : 'border-[#333]'
+        }`}
+      >
+        <svg
+          width="40"
+          height="40"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={dragOver ? '#4fc3f7' : '#555'}
+          strokeWidth="1.5"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
         </svg>
-        <p className="text-sm">DXF 파일을 여기에 드롭하거나</p>
       </div>
+      <p className="text-sm text-[#777]">
+        DXF 파일을 여기에 드롭하거나 클릭하여 불러오기
+      </p>
+      <p className="text-[11px] text-[#444] mt-1.5">DXF 형식 지원</p>
     </div>
   );
 }

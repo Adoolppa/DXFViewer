@@ -56,6 +56,22 @@ export class RendererBridge {
     this.mod.renderFrame();
   }
 
+  getEntities(): unknown[] {
+    return JSON.parse(this.mod.getEntitiesJSON()) as unknown[];
+  }
+
+  pickNearestPoint(
+    worldX: number, worldY: number, tolerance: number
+  ): { entityIdx: number; vtxIdx: number; x: number; y: number } | null {
+    const json = this.mod.pickNearestPoint(worldX, worldY, tolerance);
+    if (!json) return null;
+    return JSON.parse(json) as { entityIdx: number; vtxIdx: number; x: number; y: number };
+  }
+
+  moveVertex(entityIdx: number, vtxIdx: number, newX: number, newY: number): boolean {
+    return this.mod.moveVertex(entityIdx, vtxIdx, newX, newY);
+  }
+
   setPointOpts(opts: PointOpts): void {
     const [lr, lg, lb] = hexToRgb(opts.lineColor);
     const [cr, cg, cb] = hexToRgb(opts.curveColor);

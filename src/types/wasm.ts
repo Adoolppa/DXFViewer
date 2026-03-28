@@ -21,6 +21,10 @@ export interface RendererModule {
     lineR: number, lineG: number, lineB: number, lineSize: number,
     curveR: number, curveG: number, curveB: number, curveSize: number
   ): void;
+
+  // Point editing
+  pickNearestPoint(worldX: number, worldY: number, tolerance: number): string;
+  moveVertex(entityIdx: number, vtxIdx: number, newX: number, newY: number): boolean;
 }
 
 // Factory function exported by MODULARIZE=1 build

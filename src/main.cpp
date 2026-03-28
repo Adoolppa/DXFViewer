@@ -269,6 +269,158 @@ void setPointOpts(bool show,
 }
 
 // ---------------------------------------------------------------------------
+// pickNearestPoint
+// Returns JSON: {"entityIdx":N,"vtxIdx":N,"x":N,"y":N}  or "" if none found
+// ---------------------------------------------------------------------------
+std::string pickNearestPoint(double worldX, double worldY, double tolerance) {
+    int    bestEnt = -1;
+    int    bestVtx = -1;
+    double bestD2  = tolerance * tolerance;
+    double bestX   = 0, bestY = 0;
+
+    auto tryPt = [&](int ei, int vi, double px, double py) {
+        double dx = px - worldX, dy = py - worldY;
+        double d2 = dx*dx + dy*dy;
+        if (d2 < bestD2) {
+            bestD2  = d2;
+            bestEnt = ei;
+            bestVtx = vi;
+            bestX   = px;
+            bestY   = py;
+        }
+    };
+
+    for (int i = 0; i < (int)g_doc.entities.size(); ++i) {
+        const Entity& e = *g_doc.entities[i];
+        switch (e.type) {
+            case EntityType::LINE: {
+                auto& l = static_cast<const LineEntity&>(e);
+                tryPt(i, 0, l.x1, l.y1);
+                tryPt(i, 1, l.x2, l.y2);
+                break;
+            }
+            case EntityType::ARC: {
+                auto& a = static_cast<const ArcEntity&>(e);
+                tryPt(i, 0, a.cx, a.cy);
+                break;
+            }
+            case EntityType::CIRCLE: {
+                auto& c = static_cast<const CircleEntity&>(e);
+                tryPt(i, 0, c.cx, c.cy);
+                break;
+            }
+            case EntityType::LWPOLYLINE: {
+                auto& p = static_cast<const LWPolylineEntity&>(e);
+                for (int vi = 0; vi < (int)p.vertices.size(); ++vi)
+                    tryPt(i, vi, p.vertices[vi].x, p.vertices[vi].y);
+                break;
+            }
+            case EntityType::TEXT: {
+                auto& t = static_cast<const TextEntity&>(e);
+                tryPt(i, 0, t.x, t.y);
+                break;
+            }
+            case EntityType::ELLIPSE: {
+                auto& el = static_cast<const EllipseEntity&>(e);
+                tryPt(i, 0, el.cx, el.cy);
+                break;
+            }
+            case EntityType::INSERT: {
+                auto& ins = static_cast<const InsertEntity&>(e);
+                tryPt(i, 0, ins.x, ins.y);
+                break;
+            }
+            case EntityType::SPLINE: {
+                auto& sp = static_cast<const SplineEntity&>(e);
+                for (int vi = 0; vi < (int)sp.points.size(); ++vi)
+                    tryPt(i, vi, sp.points[vi].first, sp.points[vi].second);
+                break;
+            }
+            default: break;
+        }
+    }
+
+    if (bestEnt < 0) return "";
+
+    std::ostringstream ss;
+    ss << "{\"entityIdx\":" << bestEnt
+       << ",\"vtxIdx\":"    << bestVtx
+       << ",\"x\":"         << d2s(bestX)
+       << ",\"y\":"         << d2s(bestY)
+       << "}";
+    return ss.str();
+}
+
+// ---------------------------------------------------------------------------
+// moveVertex
+// Modifies the vertex in g_doc, then re-uploads to GPU via loadDocument.
+// Returns true on success.
+// ---------------------------------------------------------------------------
+bool moveVertex(int entityIdx, int vtxIdx, double newX, double newY) {
+    if (entityIdx < 0 || entityIdx >= (int)g_doc.entities.size()) return false;
+    Entity& e = *g_doc.entities[entityIdx];
+
+    switch (e.type) {
+        case EntityType::LINE: {
+            auto& l = static_cast<LineEntity&>(e);
+            if      (vtxIdx == 0) { l.x1 = newX; l.y1 = newY; }
+            else if (vtxIdx == 1) { l.x2 = newX; l.y2 = newY; }
+            else return false;
+            break;
+        }
+        case EntityType::ARC: {
+            auto& a = static_cast<ArcEntity&>(e);
+            if (vtxIdx != 0) return false;
+            a.cx = newX; a.cy = newY;
+            break;
+        }
+        case EntityType::CIRCLE: {
+            auto& c = static_cast<CircleEntity&>(e);
+            if (vtxIdx != 0) return false;
+            c.cx = newX; c.cy = newY;
+            break;
+        }
+        case EntityType::LWPOLYLINE: {
+            auto& p = static_cast<LWPolylineEntity&>(e);
+            if (vtxIdx < 0 || vtxIdx >= (int)p.vertices.size()) return false;
+            p.vertices[vtxIdx].x = newX;
+            p.vertices[vtxIdx].y = newY;
+            break;
+        }
+        case EntityType::TEXT: {
+            auto& t = static_cast<TextEntity&>(e);
+            if (vtxIdx != 0) return false;
+            t.x = newX; t.y = newY;
+            break;
+        }
+        case EntityType::ELLIPSE: {
+            auto& el = static_cast<EllipseEntity&>(e);
+            if (vtxIdx != 0) return false;
+            el.cx = newX; el.cy = newY;
+            break;
+        }
+        case EntityType::INSERT: {
+            auto& ins = static_cast<InsertEntity&>(e);
+            if (vtxIdx != 0) return false;
+            ins.x = newX; ins.y = newY;
+            break;
+        }
+        case EntityType::SPLINE: {
+            auto& sp = static_cast<SplineEntity&>(e);
+            if (vtxIdx < 0 || vtxIdx >= (int)sp.points.size()) return false;
+            sp.points[vtxIdx].first  = newX;
+            sp.points[vtxIdx].second = newY;
+            break;
+        }
+        default: return false;
+    }
+
+    // Re-tessellate and re-upload GPU buffers
+    g_renderer.loadDocument(g_doc);
+    return true;
+}
+
+// ---------------------------------------------------------------------------
 // Emscripten bindings
 // ---------------------------------------------------------------------------
 EMSCRIPTEN_BINDINGS(dxf_module) {
@@ -286,4 +438,7 @@ EMSCRIPTEN_BINDINGS(dxf_module) {
     emscripten::function("setViewTransform",   &setViewTransform);
     emscripten::function("renderFrame",        &renderFrame);
     emscripten::function("setPointOpts",       &setPointOpts);
+    // Point editing
+    emscripten::function("pickNearestPoint",   &pickNearestPoint);
+    emscripten::function("moveVertex",         &moveVertex);
 }

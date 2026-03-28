@@ -13,4 +13,9 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['public/wasm/renderer.js'],
   },
+  build: {
+    rollupOptions: {
+      external: ['/wasm/renderer.js'],
+    },
+  },
 });
